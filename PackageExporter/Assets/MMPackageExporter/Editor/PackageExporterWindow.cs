@@ -1,103 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-using System.Text.RegularExpressions;
-using System.Linq;
-using System.IO;
-using System;
 
 namespace MM.PackageExporter
 {
-    public class AssetInfo
-    {
-        // TODO: enum + getter on file extension for icon display.
-        public bool is_valid { get; private set; }
-        public bool is_directory { get; private set; }
-        public short depth_level { get; private set; }
-        public string path { get; private set; }
-        public string asset_name { get; private set; }
-        public bool selected { get; private set; }
-
-        private List<AssetInfo> _childs;
-
-        public AssetInfo(string asset_path)
-        {
-            is_valid = false;
-            if (string.IsNullOrEmpty(asset_path) == false)
-            {
-                is_valid = true;
-                path = asset_path;
-                asset_name = Path.GetFileName(path);
-                depth_level = (short)(path.Split('/').Length - 2); // -2 then Assets/asset will be 0 : root;
-                is_directory = AssetDatabase.IsValidFolder(path);
-                if (is_directory == true)
-                {
-                    _childs = new List<AssetInfo>();
-                }
-                selected = false;
-            }
-        }
-
-        public void AddChild(AssetInfo child)
-        {
-            if ( child != null && is_directory == true && child != this )
-            {
-                _childs.Add(child);
-            }
-        }
-
-        public List<AssetInfo> GetChildList()
-        {
-            return _childs;
-        }
-
-        public void SetSelected(bool selected_value)
-        {
-            selected = selected_value;
-        }
-    }
-
-    public class AssetInfoHolder
-    {
-        private List<AssetInfo> _assets;
-
-        public AssetInfoHolder()
-        {
-            _assets = new List<AssetInfo>();
-            Regex assetpath_match = new Regex(@"^Assets\/");
-            IOrderedEnumerable<string> ordered_path = AssetDatabase.GetAllAssetPaths().OrderBy(x => x);
-            foreach (string path in ordered_path)
-            {
-                if (assetpath_match.IsMatch(path))
-                {
-                    _assets.Add(new AssetInfo(path));
-                }
-            }
-
-            Regex child_match;
-            foreach (AssetInfo assetinfo in _assets)
-            {
-                if ( assetinfo.is_directory == true )
-                {
-                    child_match = new Regex(@"^" + assetinfo.path + ".+");
-                    foreach (AssetInfo child in _assets)
-                    {
-                        if ( child_match.IsMatch(child.path) == true && child.depth_level == assetinfo.depth_level + 1 )
-                        {
-                            assetinfo.AddChild(child);
-                        }
-                    }
-                }
-            }
-        }
-
-        public List<AssetInfo> GetAssets()
-        {
-            return _assets;
-        }
-    }
-
     public class PackageExporterWindow : EditorWindow
     {
         private AssetInfoHolder _path_holder;
@@ -126,7 +32,6 @@ namespace MM.PackageExporter
             {
                 RefreshContent();
             }
-
             DisplayAssets();
         }
 
@@ -137,7 +42,7 @@ namespace MM.PackageExporter
 
             List<AssetInfo> assets = _path_holder.GetAssets();
             GUILayout.BeginVertical();
-            foreach ( AssetInfo ai in assets )
+            foreach (AssetInfo ai in assets)
             {
                 if (ai.depth_level == 0)
                 {
@@ -149,14 +54,28 @@ namespace MM.PackageExporter
 
         private void DisplayAssetGroup(AssetInfo group)
         {
+            List<AssetInfo> child_list = group.GetChildList();
             GUILayout.BeginHorizontal();
-            GUILayout.Label("", GUILayout.Width(group.depth_level * 20));
-            group.SetSelected(GUILayout.Toggle(group.selected, "", GUILayout.Width(10)));
-            GUILayout.Label(group.asset_name);
-            GUILayout.EndHorizontal();
+            GUILayout.Space(group.depth_level * 20 + 5);
             if (group.is_directory == true)
             {
-                List<AssetInfo> child_list = group.GetChildList();
+                EditorGUI.showMixedValue = group.is_mixed_selection;
+                bool group_selected = group.is_selected;
+                bool selection_update = EditorGUILayout.ToggleLeft(group.asset_name, group_selected);
+                if ( group_selected != selection_update && child_list != null )
+                {
+                    group.SetSelected(selection_update);
+                }
+                EditorGUI.showMixedValue = false;
+            }
+            else
+            {
+                group.SetSelected(EditorGUILayout.ToggleLeft(group.asset_name, group.is_selected));
+            }
+            GUILayout.EndHorizontal();
+
+            if (group.is_directory == true)
+            {
                 if (child_list != null)
                 {
                     foreach (AssetInfo child in child_list)
