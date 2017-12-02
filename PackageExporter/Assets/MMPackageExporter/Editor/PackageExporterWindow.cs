@@ -15,18 +15,36 @@ namespace MM.PackageExporter
         public short depth_level { get; private set; }
         public string path { get; private set; }
 
+        private List<AssetInfo> _childs;
+
         public AssetInfo(string asset_path)
         {
             is_valid = false;
             if (string.IsNullOrEmpty(asset_path) == false)
             {
                 is_valid = true;
-                is_directory = AssetDatabase.IsValidFolder(asset_path);
-                depth_level = (short)asset_path.Split('/').Length;
                 path = asset_path;
+                depth_level = (short)(path.Split('/').Length - 2); // -2 then Assets/asset will be 0 : root;
+                is_directory = AssetDatabase.IsValidFolder(path);
+                if (is_directory == true)
+                {
+                    _childs = new List<AssetInfo>();
+                }
             }
         }
 
+        public void AddChild(AssetInfo child)
+        {
+            if ( child != null && is_directory == true && child != this )
+            {
+                _childs.Add(child);
+            }
+        }
+
+        public List<AssetInfo> GetChildList()
+        {
+            return _childs;
+        }
     }
 
     public class AssetInfoHolder
@@ -45,6 +63,22 @@ namespace MM.PackageExporter
                     _assets.Add(new AssetInfo(path));
                 }
             }
+
+            Regex child_match;
+            foreach (AssetInfo assetinfo in _assets)
+            {
+                if ( assetinfo.is_directory == true )
+                {
+                    child_match = new Regex(@"^" + assetinfo.path + ".+");
+                    foreach (AssetInfo child in _assets)
+                    {
+                        if ( child_match.IsMatch(child.path) == true && child.depth_level == assetinfo.depth_level + 1 )
+                        {
+                            assetinfo.AddChild(child);
+                        }
+                    }
+                }
+            }
         }
 
         public List<AssetInfo> GetAssets()
@@ -56,6 +90,7 @@ namespace MM.PackageExporter
     public class PackageExporterWindow : EditorWindow
     {
         private AssetInfoHolder _path_holder;
+        private IEnumerable<AssetInfo> child_enumerator;
 
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
@@ -94,12 +129,35 @@ namespace MM.PackageExporter
             GUILayout.BeginVertical();
             foreach ( AssetInfo ai in assets )
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(ai.path + " " + ai.depth_level);
-                GUILayout.EndHorizontal();
+                if (ai.depth_level == 0)
+                {
+                    DisplayAssetGroup(ai);
+                }
             }
             GUILayout.EndVertical();
+        }
 
+        private void DisplayAssetGroup(AssetInfo group)
+        {
+            string padding = "";
+            for (int i = 0; i < group.depth_level; ++i )
+            {
+                padding += "\t";
+            }
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(padding + group.path + " " + group.depth_level);
+            GUILayout.EndHorizontal();
+            if (group.is_directory == true)
+            {
+                List<AssetInfo> child_list = group.GetChildList();
+                if (child_list != null)
+                {
+                    foreach (AssetInfo child in child_list)
+                    {
+                        DisplayAssetGroup(child);
+                    }
+                }
+            }
         }
     }
 }
