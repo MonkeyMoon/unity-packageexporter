@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEditor;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.IO;
+using System;
 
 namespace MM.PackageExporter
 {
@@ -14,6 +16,8 @@ namespace MM.PackageExporter
         public bool is_directory { get; private set; }
         public short depth_level { get; private set; }
         public string path { get; private set; }
+        public string asset_name { get; private set; }
+        public bool selected { get; private set; }
 
         private List<AssetInfo> _childs;
 
@@ -24,12 +28,14 @@ namespace MM.PackageExporter
             {
                 is_valid = true;
                 path = asset_path;
+                asset_name = Path.GetFileName(path);
                 depth_level = (short)(path.Split('/').Length - 2); // -2 then Assets/asset will be 0 : root;
                 is_directory = AssetDatabase.IsValidFolder(path);
                 if (is_directory == true)
                 {
                     _childs = new List<AssetInfo>();
                 }
+                selected = false;
             }
         }
 
@@ -44,6 +50,11 @@ namespace MM.PackageExporter
         public List<AssetInfo> GetChildList()
         {
             return _childs;
+        }
+
+        public void SetSelected(bool selected_value)
+        {
+            selected = selected_value;
         }
     }
 
@@ -90,7 +101,6 @@ namespace MM.PackageExporter
     public class PackageExporterWindow : EditorWindow
     {
         private AssetInfoHolder _path_holder;
-        private IEnumerable<AssetInfo> child_enumerator;
 
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
@@ -139,13 +149,10 @@ namespace MM.PackageExporter
 
         private void DisplayAssetGroup(AssetInfo group)
         {
-            string padding = "";
-            for (int i = 0; i < group.depth_level; ++i )
-            {
-                padding += "\t";
-            }
             GUILayout.BeginHorizontal();
-            GUILayout.Label(padding + group.path + " " + group.depth_level);
+            GUILayout.Label("", GUILayout.Width(group.depth_level * 20));
+            group.SetSelected(GUILayout.Toggle(group.selected, "", GUILayout.Width(10)));
+            GUILayout.Label(group.asset_name);
             GUILayout.EndHorizontal();
             if (group.is_directory == true)
             {
