@@ -54,27 +54,40 @@ namespace MM.PackageExporter
 
         private void DisplayAssetGroup(AssetInfo group)
         {
-            List<AssetInfo> child_list = group.GetChildList();
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(group.depth_level * 20 + 5);
-            if (group.is_directory == true)
-            {
-                EditorGUI.showMixedValue = group.is_mixed_selection;
-                bool group_selected = group.is_selected;
-                bool selection_update = EditorGUILayout.ToggleLeft(group.asset_name, group_selected);
-                if ( group_selected != selection_update && child_list != null )
-                {
-                    group.SetSelected(selection_update);
-                }
-                EditorGUI.showMixedValue = false;
-            }
-            else
-            {
-                group.SetSelected(EditorGUILayout.ToggleLeft(group.asset_name, group.is_selected));
-            }
-            GUILayout.EndHorizontal();
+            GUIStyle icon_style = new GUIStyle(EditorStyles.label);
+            icon_style.padding = new RectOffset(1, 1, 1, 1);
+            icon_style.margin = new RectOffset(0, 0, 2, 2);
+            GUIStyle label_style = new GUIStyle(icon_style);
+            label_style.margin = new RectOffset(0, 0, 4, 2);
 
-            if (group.is_directory == true)
+            List<AssetInfo> child_list = group.GetChildList();
+            using (var horizontalScope = new GUILayout.HorizontalScope())
+            {
+                GUILayout.Space(group.depth_level * 20 + 5);
+                if (group.is_directory == true)
+                {
+                    Rect r = GUILayoutUtility.GetRect(new GUIContent("►"), EditorStyles.label, GUILayout.ExpandWidth(false));
+                    group.SetFolded(!EditorGUI.Foldout(r, !group.is_folded, ""));
+                    EditorGUI.showMixedValue = group.is_mixed_selection;
+                    bool group_selected = group.is_selected;
+                    bool selection_update = EditorGUILayout.Toggle("", group_selected, GUILayout.Width(12), GUILayout.Height(12));
+                    if (group_selected != selection_update && child_list != null)
+                    {
+                        group.SetSelected(selection_update);
+                    }
+                    EditorGUI.showMixedValue = false;
+                }
+                else
+                {
+                    GUILayout.Space(19);
+                    group.SetSelected(EditorGUILayout.Toggle("", group.is_selected, GUILayout.Width(12), GUILayout.Height(12)));
+                }
+//                GUI.DrawTexture();
+                GUILayout.Label(group.icon, icon_style, GUILayout.Width(18), GUILayout.MaxHeight(18));
+                GUILayout.Label(group.asset_name, label_style);
+            }
+
+            if (group.is_directory == true && group.is_folded == false)
             {
                 if (child_list != null)
                 {

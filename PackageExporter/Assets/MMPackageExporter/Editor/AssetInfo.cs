@@ -8,12 +8,13 @@ namespace MM.PackageExporter
 {
     public class AssetInfo
     {
-        // TODO: enum + getter on file extension for icon display.
         public bool is_valid { get; private set; }
         public bool is_directory { get; private set; }
         public short depth_level { get; private set; }
         public string path { get; private set; }
         public string asset_name { get; private set; }
+        public bool is_folded { get; private set; }
+        public Texture2D icon { get; private set; }
 
         public bool is_selected
         { 
@@ -68,6 +69,7 @@ namespace MM.PackageExporter
                 path = asset_path;
                 asset_name = Path.GetFileName(path);
                 depth_level = (short)(path.Split('/').Length - 2); // -2 then Assets/asset will be 0 : root;
+                icon = AssetPreview.GetMiniThumbnail(AssetDatabase.LoadAssetAtPath(path, typeof(Object)));
                 is_directory = AssetDatabase.IsValidFolder(path);
                 if (is_directory == true)
                 {
@@ -104,6 +106,14 @@ namespace MM.PackageExporter
             }
             else
                 _selected = selection_value;
+        }
+
+        public void SetFolded(bool folded)
+        {
+            if ( is_directory == true )
+            {
+                is_folded = folded;
+            }
         }
     }
 }
