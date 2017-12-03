@@ -7,6 +7,7 @@ namespace MM.PackageExporter
     public class PackageExporterWindow : EditorWindow
     {
         private AssetInfoHolder _path_holder;
+        private Vector2 _scroll_position;
 
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
@@ -41,15 +42,19 @@ namespace MM.PackageExporter
                 RefreshContent();
 
             List<AssetInfo> assets = _path_holder.GetAssets();
-            GUILayout.BeginVertical();
-            foreach (AssetInfo ai in assets)
+            using (var scrollViewScope = new GUILayout.ScrollViewScope(_scroll_position, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
             {
-                if (ai.depth_level == 0)
+                _scroll_position = scrollViewScope.scrollPosition;
+                GUILayout.BeginVertical();
+                foreach (AssetInfo ai in assets)
                 {
-                    DisplayAssetGroup(ai);
+                    if (ai.depth_level == 0)
+                    {
+                        DisplayAssetGroup(ai);
+                    }
                 }
+                GUILayout.EndVertical();
             }
-            GUILayout.EndVertical();
         }
 
         private void DisplayAssetGroup(AssetInfo group)
@@ -82,7 +87,6 @@ namespace MM.PackageExporter
                     GUILayout.Space(19);
                     group.SetSelected(EditorGUILayout.Toggle("", group.is_selected, GUILayout.Width(12), GUILayout.Height(12)));
                 }
-//                GUI.DrawTexture();
                 GUILayout.Label(group.icon, icon_style, GUILayout.Width(18), GUILayout.MaxHeight(18));
                 GUILayout.Label(group.asset_name, label_style);
             }
