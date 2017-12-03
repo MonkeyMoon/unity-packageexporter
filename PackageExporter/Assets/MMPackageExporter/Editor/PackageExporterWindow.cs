@@ -8,6 +8,10 @@ namespace MM.PackageExporter
     {
         private AssetInfoHolder _path_holder;
         private Vector2 _scroll_position;
+        private List<PackageConfigurationSave> _saves;
+        private List<string> _save_names;
+        private int _selected_save_id;
+        private string _save_name;
 
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
@@ -20,20 +24,67 @@ namespace MM.PackageExporter
         public void RefreshContent()
         {
             _path_holder = new AssetInfoHolder();
+            _saves = new List<PackageConfigurationSave>(Resources.FindObjectsOfTypeAll<PackageConfigurationSave>());
+            for ( int i = _saves.Count - 1; i >= 0; --i )
+            {
+                if ( _saves[i].name == "" )
+                {
+                    _saves.RemoveAt(i);
+                }
+            }
+            _save_names = new List<string>();
+            foreach(PackageConfigurationSave pcs in _saves)
+            {
+                _save_names.Add(pcs.name);
+            }
         }
 
         private void ExportPackage()
         {
-
+            PackageConfigurationSave save = ScriptableObject.CreateInstance<PackageConfigurationSave>();
+            AssetDatabase.CreateAsset(save, "Assets/" + _save_name + ".asset");
+            save.SavePackageConfiguration(_path_holder);
+            AssetDatabase.SaveAssets();
         }
 
         private void OnGUI()
         {
-            if ( GUILayout.Button("REFRESH") == true )
+            using (var verticalScope = new GUILayout.VerticalScope("box"))
+            {
+                if (_save_names.Count != 0)
+                {
+                    int new_selected_save_id = EditorGUILayout.Popup(_selected_save_id, _save_names.ToArray());
+                    if ( new_selected_save_id != _selected_save_id )
+                    {
+                        _selected_save_id = new_selected_save_id;
+                        _path_holder.LoadSave(_saves[_selected_save_id]);
+                        _save_name = _saves[_selected_save_id].name;
+                    }
+                }
+
+                using (var horizontalScope = new GUILayout.HorizontalScope())
+                {
+                    _save_name = GUILayout.TextField(_save_name);
+                    if ( string.IsNullOrEmpty(_save_name) == false && GUILayout.Button("save", GUILayout.Width(80)) )
+                    {
+                        ExportPackage();
+                    }
+                }
+            }
+            DisplayAssets();
+            if (GUILayout.Button("REFRESH") == true)
             {
                 RefreshContent();
             }
-            DisplayAssets();
+            if (GUILayout.Button("EXPORT PACKAGE") == true)
+            {
+                string save_path = EditorUtility.SaveFilePanel("Export package", "", "", "unitypackage");
+                if (string.IsNullOrEmpty(save_path) == false)
+                {
+                    AssetDatabase.ExportPackage(_path_holder.GetSelectedAssetPaths(), save_path);
+                    // TODO: Open window to freshly created package.
+                }
+            }
         }
 
         private void DisplayAssets()
@@ -75,7 +126,7 @@ namespace MM.PackageExporter
                     group.SetFolded(!EditorGUI.Foldout(r, !group.is_folded, ""));
                     EditorGUI.showMixedValue = group.is_mixed_selection;
                     bool group_selected = group.is_selected;
-                    bool selection_update = EditorGUILayout.Toggle("", group_selected, GUILayout.Width(12), GUILayout.Height(12));
+                    bool selection_update = EditorGUILayout.Toggle("", group_selected, GUILayout.Width(12));
                     if (group_selected != selection_update && child_list != null)
                     {
                         group.SetSelected(selection_update);
@@ -85,7 +136,7 @@ namespace MM.PackageExporter
                 else
                 {
                     GUILayout.Space(19);
-                    group.SetSelected(EditorGUILayout.Toggle("", group.is_selected, GUILayout.Width(12), GUILayout.Height(12)));
+                    group.SetSelected(EditorGUILayout.Toggle("", group.is_selected, GUILayout.Width(12)));
                 }
                 GUILayout.Label(group.icon, icon_style, GUILayout.Width(18), GUILayout.MaxHeight(18));
                 GUILayout.Label(group.asset_name, label_style);

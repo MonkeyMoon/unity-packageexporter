@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
@@ -43,6 +44,35 @@ namespace MM.PackageExporter
         public List<AssetInfo> GetAssets()
         {
             return _assets;
+        }
+
+        public void LoadSave(PackageConfigurationSave package_config_save)
+        {
+            foreach (AssetInfo assetinfo in _assets)
+            {
+                assetinfo.SetSelected(false);
+                foreach ( string path in package_config_save.asset_path_list)
+                {
+                    if ( assetinfo.path == path )
+                    {
+                        assetinfo.SetSelected(true);
+                        break;
+                    }
+                }
+            }
+        }
+
+        public string[] GetSelectedAssetPaths()
+        {
+            List<string> selected_assets = new List<string>();
+            foreach ( AssetInfo asset_info in _assets )
+            {
+                if ( asset_info.is_directory == false && asset_info.is_selected == true )
+                {
+                    selected_assets.Add(asset_info.path);
+                }
+            }
+            return selected_assets.ToArray();
         }
     }
 
