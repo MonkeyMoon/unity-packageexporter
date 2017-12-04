@@ -113,14 +113,14 @@ namespace MM.PackageExporter
                     asset_path = "Assets";
                 }
                 asset_path += "/PackageConfigurations";
-                // Create folder if needed
-                if (AssetDatabase.IsValidFolder(asset_path) == false )
-                {
-                    AssetDatabase.CreateFolder(Directory.GetParent(asset_path).ToString(), "PackageConfigurations");
-                }
 
                 save.SavePackageConfiguration(_path_holder);
 
+                // Create folder if needed
+                if (AssetDatabase.IsValidFolder(asset_path) == false)
+                {
+                    AssetDatabase.CreateFolder(Directory.GetParent(asset_path).ToString(), "PackageConfigurations");
+                }
                 AssetDatabase.CreateAsset(save, asset_path + "/" + _save_name + ".asset");
                 AssetDatabase.SaveAssets();
 
