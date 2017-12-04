@@ -64,6 +64,8 @@ namespace MM.PackageExporter
         /// it will be ignored.</remarks>
         public void LoadSave(PackageConfigurationSave package_config_save)
         {
+            if (package_config_save == null || package_config_save.asset_path_list == null)
+                return;
             foreach (AssetInfo assetinfo in _assets)
             {
                 assetinfo.SetSelected(false);

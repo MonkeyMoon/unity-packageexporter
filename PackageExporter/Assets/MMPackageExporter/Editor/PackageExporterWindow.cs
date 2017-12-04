@@ -119,8 +119,9 @@ namespace MM.PackageExporter
                     AssetDatabase.CreateFolder(Directory.GetParent(asset_path).ToString(), "PackageConfigurations");
                 }
 
-                AssetDatabase.CreateAsset(save, asset_path + "/" + _save_name + ".asset");
                 save.SavePackageConfiguration(_path_holder);
+
+                AssetDatabase.CreateAsset(save, asset_path + "/" + _save_name + ".asset");
                 AssetDatabase.SaveAssets();
 
                 RefreshContent();
