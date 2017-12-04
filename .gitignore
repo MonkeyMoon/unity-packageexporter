@@ -1,5 +1,6 @@
 PackageConfigurations*
 *.unity*
+ProjectSettings
 
 ### Unity directories
 temp
