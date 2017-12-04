@@ -1,4 +1,5 @@
 PackageConfigurations*
+*.unity
 
 ### Unity directories
 temp
