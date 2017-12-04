@@ -7,6 +7,9 @@ using UnityEngine;
 
 namespace MM.PackageExporter
 {
+    /// <summary>
+    /// Contains all the AssetInfo of current project.
+    /// </summary>
     public class AssetInfoHolder
     {
         private List<AssetInfo> _assets;
@@ -14,6 +17,8 @@ namespace MM.PackageExporter
         public AssetInfoHolder()
         {
             _assets = new List<AssetInfo>();
+            // Get all asset paths contain in the AssetDatabase and keep only the ones that match the 
+            // Regular expression.
             Regex assetpath_match = new Regex(@"^Assets\/");
             IOrderedEnumerable<string> ordered_path = AssetDatabase.GetAllAssetPaths().OrderBy(x => x);
             foreach (string path in ordered_path)
@@ -24,6 +29,10 @@ namespace MM.PackageExporter
                 }
             }
 
+
+            // For every kept asset, find and attach their childs
+            // ex: MMPackageExporter will contain MMPackageExporter/FileA.cs and MMPackageExporter/FileB.cs 
+            //     as childs
             Regex child_match;
             foreach (AssetInfo assetinfo in _assets)
             {
@@ -41,11 +50,18 @@ namespace MM.PackageExporter
             }
         }
 
-        public List<AssetInfo> GetAssets()
+        public List<AssetInfo> GetAssetInfos()
         {
             return _assets;
         }
 
+        /// <summary>
+        /// Load a give PackageConfigurationSave and apply the according selections.
+        /// </summary>
+        /// <param name="package_config_save">Package Configuration to load.</param>
+        /// <seealso cref="PackageConfigurationSave"/>
+        /// <remarks>If a file has been saved in a PackageConfigurationSave but doesn't exist anymore
+        /// it will be ignored.</remarks>
         public void LoadSave(PackageConfigurationSave package_config_save)
         {
             foreach (AssetInfo assetinfo in _assets)
@@ -62,6 +78,10 @@ namespace MM.PackageExporter
             }
         }
 
+        /// <summary>
+        /// Get an array of all selected assets path.
+        /// </summary>
+        /// <returns>An array of string containing the path of selected assets</returns>
         public string[] GetSelectedAssetPaths()
         {
             List<string> selected_assets = new List<string>();
@@ -73,6 +93,28 @@ namespace MM.PackageExporter
                 }
             }
             return selected_assets.ToArray();
+        }
+
+        /// <summary>
+        /// Unselect every previously selected asset.
+        /// </summary>
+        public void ClearSelection()
+        {
+            foreach (AssetInfo asset_info in _assets )
+            {
+                asset_info.SetSelected(false);
+            }
+        }
+
+        /// <summary>
+        /// Select all the assets.
+        /// </summary>
+        public void SelectAll()
+        {
+            foreach (AssetInfo asset_info in _assets)
+            {
+                asset_info.SetSelected(true);
+            }
         }
     }
 

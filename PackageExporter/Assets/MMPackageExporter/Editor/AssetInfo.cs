@@ -6,6 +6,9 @@ using UnityEditor;
 
 namespace MM.PackageExporter
 {
+    /// <summary>
+    /// Class describing various asset informations.
+    /// </summary>
     public class AssetInfo
     {
         public bool is_valid { get; private set; }
@@ -16,13 +19,16 @@ namespace MM.PackageExporter
         public bool is_folded { get; private set; }
         public Texture2D icon { get; private set; }
 
+        /// <summary>
+        /// Return true if the asset, or every of its childs is selected.
+        /// </summary>
         public bool is_selected
         { 
             get
             {
                 if (is_directory == true)
                 {
-                    if (_childs == null)
+                    if (_childs == null || _childs.Count == 0)
                         return false;
                     foreach (AssetInfo child in _childs)
                     {
@@ -36,6 +42,9 @@ namespace MM.PackageExporter
             }
         }
 
+        /// <summary>
+        /// Return true if all the childs have the same selection state.
+        /// </summary>
         public bool is_mixed_selection
         {
             get
@@ -79,6 +88,10 @@ namespace MM.PackageExporter
             }
         }
 
+        /// <summary>
+        /// Adds a given AssetInfo as child to the current object.
+        /// </summary>
+        /// <param name="child">AssetInfo to add as child.</param>
         public void AddChild(AssetInfo child)
         {
             if (child != null && is_directory == true && child != this)
@@ -108,6 +121,11 @@ namespace MM.PackageExporter
                 _selected = selection_value;
         }
 
+        /// <summary>
+        /// Set the folded state of an Asset.
+        /// </summary>
+        /// <param name="folded">Folded state to set</param>
+        /// <remarks>On applied to directories.</remarks>
         public void SetFolded(bool folded)
         {
             if ( is_directory == true )
