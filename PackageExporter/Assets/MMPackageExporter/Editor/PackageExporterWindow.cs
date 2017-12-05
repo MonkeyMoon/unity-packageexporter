@@ -20,12 +20,21 @@ namespace MM.PackageExporter
         private int _selected_save_id;
         private string _save_name;
 
+
+        public static bool is_opened { get { return window != null; } }
+        private static PackageExporterWindow window;
+
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
         {
-            PackageExporterWindow window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
+            window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
             window.Show();
             window.RefreshContent();
+        }
+
+        void OnDestroy()
+        {
+            window = null;
         }
 
         /// <summary>
@@ -59,6 +68,7 @@ namespace MM.PackageExporter
         {
             // Look for plugin path and set it
             _plugin_path = FindPluginPath();
+            _save_name = "";
             _path_holder = new AssetInfoHolder();
             // Retrieve existing PackageConfigurationSave assets
             _saves = new List<PackageConfigurationSave>(Resources.FindObjectsOfTypeAll<PackageConfigurationSave>());

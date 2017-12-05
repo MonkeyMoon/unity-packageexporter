@@ -12,10 +12,13 @@ namespace MM.PackageExporter
     {
         static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
-            PackageExporterWindow exporter_window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
-            if (exporter_window != null)
+            if (PackageExporterWindow.is_opened == true)
             {
-                exporter_window.RefreshContent();
+                PackageExporterWindow exporter_window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
+                if (exporter_window != null)
+                {
+                    exporter_window.RefreshContent(); 
+                }
             }
         }
     }
