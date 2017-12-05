@@ -21,20 +21,42 @@ namespace MM.PackageExporter
         private string _save_name;
 
 
-        public static bool is_opened { get { return window != null; } }
-        private static PackageExporterWindow window;
+        public static bool is_opened
+        {
+            get
+            {
+                if (!_initialized)
+                {
+                    // Project has reloaded and static vars have been lost.
+                    // Initialize and retrieve editor window if it's open
+                    _initialized = true;
+                    UnityEngine.Object[] array = Resources.FindObjectsOfTypeAll(typeof(PackageExporterWindow));
+                    _window = array.Length == 0 ? null : array[0] as PackageExporterWindow;
+                }
+                return _window != null;
+            }
+        }
+
+        private static bool _initialized;
+        private static PackageExporterWindow _window;
 
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
         {
-            window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
-            window.Show();
-            window.RefreshContent();
+            _window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
+            _window.Show();
+            _window.RefreshContent();
         }
 
-        void OnDestroy()
+        private void OnDestroy()
         {
-            window = null;
+            _window = null;
+        }
+
+        private void OnEnable()
+        {
+            _window = this;
+            _initialized = true; 
         }
 
         /// <summary>
