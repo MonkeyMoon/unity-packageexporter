@@ -75,7 +75,7 @@ namespace MM.PackageExporter
             if (string.IsNullOrEmpty(asset_path) == false)
             {
                 is_valid = true;
-                path = asset_path;
+                path = GetSafePath(asset_path);
                 asset_name = Path.GetFileName(path);
                 depth_level = (short)(path.Split('/').Length - 2); // -2 then Assets/asset will be 0 : root;
                 icon = AssetPreview.GetMiniThumbnail(AssetDatabase.LoadAssetAtPath(path, typeof(Object)));
@@ -86,6 +86,19 @@ namespace MM.PackageExporter
                 }
                 _selected = false;
             }
+        }
+
+        private string GetSafePath(string path)
+        {
+            char[] char_array = path.ToCharArray();
+            for ( int i = 0; i < char_array.Length; ++i )
+            {
+                if (char_array[i] == '\\')
+                {
+                    char_array[i] = '/';
+                }
+            }
+            return new string(char_array);
         }
 
         /// <summary>

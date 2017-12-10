@@ -19,6 +19,8 @@ namespace MM.PackageExporter
         private List<string> _save_names;
         private int _selected_save_id;
         private string _save_name;
+        private Rect _assetsViewArea;
+        private Rect _scrollRect;
 
 
         public static bool is_opened
@@ -43,7 +45,7 @@ namespace MM.PackageExporter
         [MenuItem("Window/Monkey Moon/Package Exporter")]
         private static void ShowWindow()
         {
-            _window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow));
+            _window = (PackageExporterWindow)EditorWindow.GetWindow(typeof(PackageExporterWindow), true);
             _window.Show();
             _window.RefreshContent();
         }
@@ -206,7 +208,7 @@ namespace MM.PackageExporter
 
         private void OnGUI()
         {
-            using (var verticalScope = new GUILayout.VerticalScope("box"))
+            using (new GUILayout.VerticalScope("box"))
             {
                 // Save selection group ----------------------
                 // If saves exist, show selection popup
@@ -221,7 +223,7 @@ namespace MM.PackageExporter
                 // --------------------------------------------
 
                 // Save action group --------------------------
-                using (var horizontalScope = new GUILayout.HorizontalScope())
+                using (new GUILayout.HorizontalScope())
                 {
                     GUILayout.Label("File name: ", GUILayout.Width(65));
                     _save_name = GUILayout.TextField(_save_name, GUILayout.ExpandWidth(true));
@@ -233,15 +235,16 @@ namespace MM.PackageExporter
                 // --------------------------------------------
             }
 
+            _assetsViewArea = GUILayoutUtility.GetRect(1f, 9999f, 1f, 99999f);
             DisplayAssets();
 
             //if (GUILayout.Button("REFRESH") == true)
             //{
             //    RefreshContent();
             //}
-            using (var verticalScope = new GUILayout.VerticalScope("box"))
+            using (new GUILayout.VerticalScope("box"))
             {
-                using (var horizontalScope = new GUILayout.HorizontalScope())
+                using (new GUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("Select All") == true)
                     {
@@ -262,27 +265,32 @@ namespace MM.PackageExporter
 
         /// <summary>
         /// Displays the asset list with Toggles and File icons.
+        /// When entering, exits immediately if it's a Layout or Used event.
         /// </summary>
         private void DisplayAssets()
         {
+            if (Event.current.type == EventType.Layout || Event.current.type == EventType.Used) return;
+
             if (_path_holder == null)
                 RefreshContent();
 
             List<AssetInfo> assets = _path_holder.GetAssetInfos();
-            using (var scrollViewScope = new GUILayout.ScrollViewScope(_scroll_position, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
+            _scrollRect.width = _assetsViewArea.width - 16; // This practically disables horizontal scrolling, which is intended behaviour
+            using (var scrollViewScope = new GUI.ScrollViewScope(_assetsViewArea, _scroll_position, _scrollRect))
             {
                 _scroll_position = scrollViewScope.scrollPosition;
-                GUILayout.BeginVertical();
+                float currY = 0;
+                float viewHeight = 0;
                 foreach (AssetInfo ai in assets)
                 {
                     // Display only level 0 assets (DisplayAssetGroup will be in charge of displaying childs).
-                    if (ai.depth_level == 0) 
+                    if (ai.depth_level == 0)
                     {
                         // Display specific asset and all its content.
-                        DisplayAssetGroup(ai);
+                        DisplayAssetGroup(ai, ref currY, ref viewHeight);
                     }
                 }
-                GUILayout.EndVertical();
+                _scrollRect.height = viewHeight;
             }
         }
 
@@ -291,22 +299,30 @@ namespace MM.PackageExporter
         /// </summary>
         /// <param name="group">AssetInfo to display.</param>
         /// <seealso cref="AssetInfo"/>
-        private void DisplayAssetGroup(AssetInfo group)
+        private void DisplayAssetGroup(AssetInfo group, ref float currY, ref float viewHeight)
         {
+            Rect contentR = new Rect(0, currY, _scrollRect.width, EditorGUIUtility.singleLineHeight);
+            currY += contentR.height;
+            viewHeight += contentR.height;
             List<AssetInfo> child_list = group.GetChildList();
-            using (var horizontalScope = new GUILayout.HorizontalScope())
+
+            bool isVisible = currY >= _scroll_position.y && currY - contentR.height - _scroll_position.y <= _assetsViewArea.height;
+            if (isVisible)
             {
-                GUILayout.Space(group.depth_level * 20 + 5);
-                // Display childs if current asset is a Directory.
+                // Only render if this element is visible
+                contentR.x += group.depth_level * 20 + 5;
+                Rect toggleR;
                 if (group.is_directory == true)
                 {
                     // Foldout group
-                    Rect r = GUILayoutUtility.GetRect(new GUIContent("►"), EditorStyles.label, GUILayout.ExpandWidth(false));
-                    group.SetFolded(!EditorGUI.Foldout(r, !group.is_folded, ""));
+                    Rect foldoutR = new Rect(contentR.x, contentR.y, 16, contentR.height);
+                    toggleR = new Rect(foldoutR.xMax, contentR.y, 12, contentR.height);
+                    contentR.x += foldoutR.width;
+                    group.SetFolded(!EditorGUI.Foldout(foldoutR, !group.is_folded, ""));
                     // Mixed Value
                     EditorGUI.showMixedValue = group.is_mixed_selection;
                     bool group_selected = group.is_selected;
-                    bool selection_update = EditorGUILayout.Toggle("", group_selected, GUILayout.Width(12));
+                    bool selection_update = EditorGUI.Toggle(toggleR, "", group_selected);
                     if (group_selected != selection_update && child_list != null)
                     {
                         group.SetSelected(selection_update);
@@ -316,11 +332,17 @@ namespace MM.PackageExporter
                 else
                 {
                     // If asset is not a Directory, add space to compensate and display a simple Toggle.
-                    GUILayout.Space(19);
-                    group.SetSelected(EditorGUILayout.Toggle("", group.is_selected, GUILayout.Width(12)));
+                    contentR.x += 19;
+                    toggleR = new Rect(contentR.x, contentR.y, 12, contentR.height);
+                    group.SetSelected(EditorGUI.Toggle(toggleR, "", group.is_selected));
                 }
-                GUILayout.Label(group.icon, AssetDisplayStyles.icon, GUILayout.Width(18), GUILayout.MaxHeight(18));
-                GUILayout.Label(group.asset_name, AssetDisplayStyles.label);
+                Rect icoR = new Rect(toggleR.xMax + 5, contentR.y + 1, contentR.height, contentR.height);
+                Rect assetNameR = new Rect(icoR.xMax + 1, contentR.y, contentR.width - icoR.xMax, contentR.height);
+                if (group.icon != null)
+                {
+                    GUI.DrawTexture(icoR, group.icon, ScaleMode.ScaleToFit);
+                }
+                GUI.Label(assetNameR, group.asset_name, AssetDisplayStyles.label);
             }
 
             // Only display childs on Directories that are not folded.
@@ -330,7 +352,7 @@ namespace MM.PackageExporter
                 {
                     foreach (AssetInfo child in child_list)
                     {
-                        DisplayAssetGroup(child);
+                        DisplayAssetGroup(child, ref currY, ref viewHeight);
                     }
                 }
             }

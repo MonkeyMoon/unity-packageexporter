@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using System.IO;
 
 namespace MM.PackageExporter
 {
@@ -13,22 +14,30 @@ namespace MM.PackageExporter
     public class AssetInfoHolder
     {
         private List<AssetInfo> _assets;
+        private List<AssetInfo> _first_row;
 
         public AssetInfoHolder()
         {
             _assets = new List<AssetInfo>();
+            _first_row = new List<AssetInfo>();
             // Get all asset paths contain in the AssetDatabase and keep only the ones that match the 
             // Regular expression.
-            Regex assetpath_match = new Regex(@"^Assets\/");
-            IOrderedEnumerable<string> ordered_path = AssetDatabase.GetAllAssetPaths().OrderBy(x => x);
-            foreach (string path in ordered_path)
+            Regex assetpath_match = new Regex(@"(Assets\\.*)$");
+            Match match;
+            string[] dir_paths = Directory.GetDirectories(Application.dataPath, "*", SearchOption.AllDirectories);
+            string[] file_paths = Directory.GetFiles(Application.dataPath, "*", SearchOption.AllDirectories);
+            string[] paths = new string[dir_paths.Length + file_paths.Length];
+            dir_paths.CopyTo(paths, 0);
+            file_paths.CopyTo(paths, dir_paths.Length);
+
+            foreach (string path in paths) 
             {
-                if (assetpath_match.IsMatch(path))
+                match = assetpath_match.Match(path);
+                if ( match.Success == true && Path.GetExtension(path).ToString().ToLower() != ".meta" )
                 {
-                    _assets.Add(new AssetInfo(path));
+                    _assets.Add(new AssetInfo(match.Groups[1].ToString()));
                 }
             }
-
 
             // For every kept asset, find and attach their childs
             // ex: MMPackageExporter will contain MMPackageExporter/FileA.cs and MMPackageExporter/FileB.cs 
@@ -39,12 +48,16 @@ namespace MM.PackageExporter
                 if (assetinfo.is_directory == true)
                 {
                     child_match = new Regex(@"^" + assetinfo.path + ".+");
-                    foreach (AssetInfo child in _assets)
+                    foreach( AssetInfo child in _assets)
                     {
                         if (child_match.IsMatch(child.path) == true && child.depth_level == assetinfo.depth_level + 1)
                         {
                             assetinfo.AddChild(child);
                         }
+                    }
+                    if ( assetinfo.depth_level == 0 )
+                    {
+                        _first_row.Add(assetinfo);
                     }
                 }
             }
@@ -53,6 +66,11 @@ namespace MM.PackageExporter
         public List<AssetInfo> GetAssetInfos()
         {
             return _assets;
+        }
+
+        public List<AssetInfo> GetFirstRowInfos()
+        {
+            return _first_row;
         }
 
         /// <summary>
